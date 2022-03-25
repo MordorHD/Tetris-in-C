@@ -1,8 +1,20 @@
 # Tetris-in-C
 
+Just another Tetris version I made for fun.
+The drop sound effect of the tetronomino is me slamming my desk, I didn't find the real sound effect online, so I had to improvise.
+
 Only on windows.
 
-Compile using linker options: `-lgdi32 -lwinmm`
+## Compiling
+Compile using linker options: `-lgdi32 -lwinmm` <br>
+Navigate to the where you have extracted the zip file to with your console window using `cd` <br>
+Be sure to have `gcc` command available, just type `gcc` to confirm. <br>
+When this is not the case, you have to use `set path=%path%;<file path of gcc.exe>` <br>
+`gcc main.c -lgdi32 -lwinmm & a` will compile and execute the program.
+
+## Running the program
+So, when you you used above steps to compile, the program should already run. <br>
+When you don't have `gcc` to compile, just run `Tetris.exe`. <br>
 
 ## Controls
 ### Menu
