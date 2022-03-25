@@ -920,6 +920,8 @@ void RegisterClasses(void)
 
 int main(void)
 {
+    FreeConsole();
+
     HWND hWnd;
     MSG msg;
 
