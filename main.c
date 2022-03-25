@@ -4,85 +4,37 @@
 #include <time.h>
 #include <windows.h>
 
+// 2 channels
+// 8000 bytes per second
 static struct {
      HWAVEOUT hWaveOut;
      HANDLE audioThread;
      WAVEFORMATEX waveFormat;
      int index;
-     int loadIndex;
-     short buffer[16000]; // two seconds of sound
-     bool bPaused, bLocked;
+     int musicIndex;
+     short buffer[24000]; // three seconds of sound
+     bool musicPlaying;
+     bool paused, locked;
 } Audio;
 
 #define BUFFERLEN (sizeof(Audio.buffer)/sizeof(*Audio.buffer))
 #define PARTCNT (sizeof(Audio.parts)/sizeof(*Audio.parts))
 #define PARTSIZE (sizeof(Audio.buffer)/PARTCNT)
 
+#define EFFECT_ROTATE 1
+#define EFFECT_LINECLEAR 2
+#define EFFECT_TETRIS 3
+#define EFFECT_GAMEOVER 4
+#define EFFECT_FELL 5
+#define EFFECT_MAX 5
 struct {
-    char *data;
+    short *data;
     int dataLength;
-} AudioBuffers[4];
-
-void CALLBACK WaveOutputCallback(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
-{}
-
-DWORD WINAPI AudioThread(void *unused)
-{
-    static WAVEHDR hdr[3];
-    int indexes[3];
-    int i;
-    int rndIndex = sizeof(Audio.buffer);
-    for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
-    {
-        waveOutPrepareHeader(Audio.hWaveOut, hdr + i, sizeof(*hdr));
-        hdr[i].dwFlags |= WHDR_DONE;
-        hdr[i].lpData = malloc(2000);
-        hdr[i].dwBufferLength = 2000;
-    }
-    // load theme into buffer
-    memcpy(Audio.buffer, AudioBuffers[0].data, sizeof(Audio.buffer));
-    while(1)
-    {
-        next:
-        while(Audio.bPaused | Audio.bLocked)
-            Sleep(10);
-        for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
-        {
-            if(hdr[i].dwFlags & WHDR_DONE)
-            {
-                indexes[i] = Audio.index;
-                memcpy(hdr[i].lpData, (void*) Audio.buffer + Audio.index, 2000);
-                Audio.index += 2000;
-                Audio.index %= sizeof(Audio.buffer);
-                waveOutWrite(Audio.hWaveOut, hdr + i, sizeof(*hdr));
-            }
-            else
-                indexes[i] = -1;
-        }
-        for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
-        {
-            if(indexes[i] >= 0)
-            {
-                memcpy((void*) Audio.buffer + indexes[i], AudioBuffers[0].data + rndIndex, 2000);
-                rndIndex += 2000;
-                rndIndex %= AudioBuffers[0].dataLength;
-            }
-        }
-        while(1)
-        {
-            Sleep(1);
-            for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
-                if(hdr[i].dwFlags & WHDR_DONE)
-                    goto next;
-        }
-    }
-    return 0;
-}
-
-HWND MainWindow;
+} AudioBuffers[EFFECT_MAX + 1];
 
 #define WM_SETACTIVEWINDOW 0xFF0F
 #define WM_START 0xFFF0
+HWND MainWindow;
 
 HBRUSH WallBrush;
 int OffsetX, OffsetY;
@@ -102,6 +54,101 @@ struct Piece {
 } Pieces[7];
 
 HDC FontDc;
+
+void CALLBACK WaveOutputCallback(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
+{}
+
+void PlaySoundEffect(int i)
+{
+    int ind, len;
+    short *src;
+
+    ind = Audio.index;
+    len = AudioBuffers[i].dataLength;
+    src = AudioBuffers[i].data;
+    while(len)
+    {
+        *(short*) ((void*) Audio.buffer + ind) += *src;
+        ind += 2;
+        ind %= sizeof(Audio.buffer);
+        src++;
+        len -= 2;
+    }
+}
+
+void AudioStartMusic(void)
+{
+    memcpy(Audio.buffer, AudioBuffers[0].data, sizeof(Audio.buffer));
+    Audio.musicPlaying = 1;
+    Audio.paused = 0;
+    Audio.musicIndex = sizeof(Audio.buffer);
+}
+
+void AudioStopMusic(void)
+{
+    Audio.musicPlaying = 0;
+    Audio.musicIndex = 0;
+    memset(Audio.buffer, 0, sizeof(Audio.buffer));
+}
+
+DWORD WINAPI AudioThread(void *unused)
+{
+    #define HDRSIZE 400
+    static WAVEHDR hdr[4];
+    int indexes[sizeof(hdr) / sizeof(*hdr)];
+    int i;
+    for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
+    {
+        waveOutPrepareHeader(Audio.hWaveOut, hdr + i, sizeof(*hdr));
+        hdr[i].dwFlags |= WHDR_DONE;
+        hdr[i].lpData = malloc(HDRSIZE);
+        hdr[i].dwBufferLength = HDRSIZE;
+    }
+    while(1)
+    {
+        next:
+        while(Audio.paused || Audio.locked)
+            Sleep(10);
+        for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
+        {
+            if(hdr[i].dwFlags & WHDR_DONE)
+            {
+                indexes[i] = Audio.index;
+                memcpy(hdr[i].lpData, (void*) Audio.buffer + Audio.index, HDRSIZE);
+                Audio.index += HDRSIZE;
+                Audio.index %= sizeof(Audio.buffer);
+                waveOutWrite(Audio.hWaveOut, hdr + i, sizeof(*hdr));
+            }
+            else
+                indexes[i] = -1;
+        }
+        for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
+        {
+            if(indexes[i] >= 0)
+            {
+                if(Audio.musicPlaying) // replace written audio with music
+                {
+                    memcpy((void*) Audio.buffer + indexes[i], (void*) AudioBuffers[0].data + Audio.musicIndex, HDRSIZE);
+                    Audio.musicIndex += HDRSIZE;
+                    Audio.musicIndex %= AudioBuffers[0].dataLength;
+                }
+                else // replace written audio with silence
+                {
+                    memset((void*) Audio.buffer + indexes[i], 0, HDRSIZE);
+                }
+            }
+        }
+        while(1)
+        {
+            Sleep(1);
+            for(i = 0; i < sizeof(hdr) / sizeof(*hdr); i++)
+                if(hdr[i].dwFlags & WHDR_DONE)
+                    goto next;
+        }
+    }
+    return 0;
+    #undef HDRSIZE
+}
 
 int CDrawText(HDC hdc, int scale, int x, int y, const char *text, int count)
 {
@@ -454,6 +501,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     static int score = 0;
     static int level = 0;
     static int color = 0xAA8000;
+    static bool showColor = 1;
     static int startLevel = 0;
     static int lines = 0;
     static bool keys[255];
@@ -493,7 +541,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         pieceY = 0;
         level = startLevel = wParam;
         SetTimer(hWnd, 0, level >= 14 ? 20 : 860 - level * 60, NULL);
-        Audio.bPaused = 0;
+        AudioStartMusic();
         break;
     case WM_TIMER:
         if(paused)
@@ -578,8 +626,8 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     if(Grid[(pieceX + x) + (pieceY + y) * GRID_WIDTH])
                     {
                         gameOver = 1;
-                        Audio.bPaused = 1;
-                        Audio.index = 0;
+                        AudioStopMusic();
+                        PlaySoundEffect(EFFECT_GAMEOVER);
                         KillTimer(hWnd, 0);
                         KillTimer(hWnd, 1);
                         SetTimer(hWnd, 3, 40, NULL); // play drop animation
@@ -611,6 +659,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 animationFrames = animationDuration;
                 SetTimer(hWnd, 2, 40, NULL);
+                PlaySoundEffect(linesCleared == 4 ? EFFECT_TETRIS : EFFECT_LINECLEAR);
             }
             else
             {
@@ -621,6 +670,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             pieceX = GRID_WIDTH / 2 - 1;
             pieceY = 0;
             KillTimer(hWnd, 1);
+            PlaySoundEffect(EFFECT_FELL);
         }
         else
         {
@@ -636,7 +686,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         SetTextAlign(BufferDc, TA_CENTER);
         r = (RECT) { 0, 0, BufferWidth, BufferHeight };
         FillRect(BufferDc, &r, WallBrush);
-        SetDCBrushColor(BufferDc, color);
+        SetDCBrushColor(BufferDc, showColor ? color : 0);
         r = (RECT) { OffsetX, OffsetY, OffsetX + TileWidth * GRID_WIDTH, OffsetY + (lines % GRID_HEIGHT) * TileHeight };
         FillRect(BufferDc, &r, GetStockObject(BLACK_BRUSH));
         r.top = r.bottom;
@@ -775,8 +825,11 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 curPiece = Pieces + rand() % (sizeof(Pieces) / sizeof(*Pieces));
                 nextPiece = Pieces + rand() % (sizeof(Pieces) / sizeof(*Pieces));
                 memcpy(piece, curPiece->grid, curPiece->gs * curPiece->gs);
-                SetTimer(hWnd, 0, level >= 14 ? 20 : 860 - level * 60, NULL);
-                Audio.bPaused = 0;
+                SetTimer(hWnd, 0, level >= 25 ? 20 :
+                                  level >= 20 ? 30 - (level - 20) * 2 :
+                                  level >= 14 ? 80 - (level - 14) * 10 :
+                                  860 - level * 60, NULL);
+                Audio.musicPlaying = 1;
             }
             return 0;
         }
@@ -788,8 +841,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             {
                 if(!keys[wParam])
                 {
-                    paused = 0;
-                    Audio.bPaused = 0;
+                    Audio.paused = paused = 0;
                     keys[wParam] = 1;
                 }
             }
@@ -816,17 +868,19 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             RotateGrid(piece, curPiece->gs, rot, ccw);
             if(!CheckCollision(rot, curPiece->gs, pieceX, pieceY))
                 return 0;
+            // PlaySoundEffect(EFFECT_ROTATE); --> this effect is kinda annoying
             memcpy(piece, rot, curPiece->gs * curPiece->gs);
             break;
         case 'A': case VK_LEFT: if(!CheckCollision(piece, curPiece->gs, pieceX - 1, pieceY)) return 0; pieceX--; break;
         case 'D': case VK_RIGHT: if(!CheckCollision(piece, curPiece->gs, pieceX + 1, pieceY)) return 0; pieceX++; break;
-        case 'M': Audio.bLocked = !Audio.bLocked; return 0;
+        case 'M': Audio.musicPlaying = !Audio.musicPlaying; return 0;
+        case 'N': Audio.locked = !Audio.locked; return 0;
+        case 'C': showColor = !showColor; break;
         case VK_ESCAPE:
         case VK_RETURN:
             if(!keys[wParam])
             {
-                paused = 1;
-                Audio.bPaused = 1;
+                Audio.paused = paused = 1;
                 keys[wParam] = 1;
             }
             break;
@@ -866,9 +920,10 @@ int main(void)
     HWND hWnd;
     MSG msg;
 
-    int i;
+    int i, j;
     long len;
     FILE *fp;
+    float factor, inc;
     DWORD dwThreadId;
 
     srand(time(NULL));
@@ -876,16 +931,15 @@ int main(void)
     RegisterClasses();
     hWnd = CreateWindow("Main", "Tetris", WS_VISIBLE | WS_OVERLAPPEDWINDOW, CW_USEDEFAULT,
                              CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, NULL, NULL);
-    UpdateWindow(hWnd);
-    // init sound
 
-    // well, just play the main theme, I didn't have time to do the rest or I am not good enough
-    // to do it in such little time I have left
+    // init sound
     const char *soundPaths[] = {
         "sounds\\theme.wav",
         "sounds\\Tetris_turn_effect.wav",
         "sounds\\Tetris_regular_line_clear.wav",
         "sounds\\nes-tetris-sound-effect-tetris-clear.wav",
+        "sounds\\End.wav",
+        "sounds\\Fell.wav"
     };
 
     for(i = 0; i < sizeof(soundPaths) / sizeof(*soundPaths); i++)
@@ -893,7 +947,7 @@ int main(void)
         fp = fopen(soundPaths[i], "rb");
         if(!fp)
         {
-            printf("error: failed loading sound resources\n");
+            printf("error: failed loading sound resources: %s\n", soundPaths[i]);
             while(--i >= 0)
                 free(AudioBuffers[i].data);
             break;
@@ -915,19 +969,46 @@ int main(void)
         Audio.waveFormat.nAvgBytesPerSec = 8000 * 2 * 16 / 8;
         Audio.waveFormat.nBlockAlign     = 2 * 16 / 8;
         Audio.waveFormat.wBitsPerSample  = 16;
-        Audio.bPaused = 1;
+        Audio.paused = 1;
         if(!waveOutOpen(&Audio.hWaveOut,
                        WAVE_MAPPER,
                        &Audio.waveFormat,
                        (DWORD_PTR) WaveOutputCallback,
                        0, CALLBACK_FUNCTION))
+        {
+            // make sounds ready for mixing
+            i = AudioBuffers[0].dataLength / 2;
+            while(i--)
+                AudioBuffers[0].data[i] /= 7;
+            // create smooth transition from one end to the other ((for looping) against sound artifacts)
+            factor = 0.01f;
+            inc = 0.99f / 1000;
+            for(i = 0; i < 1000; i++, factor += inc)
+            {
+                AudioBuffers[0].data[i] *= factor;
+                AudioBuffers[0].data[AudioBuffers[0].dataLength / 2 - 1 - i] *= factor;
+            }
+            // give sound effects a fade effect (against sound artifacts that appear with sudden amplitude changes)
+            for(i = 1; i <= EFFECT_MAX; i++)
+            {
+                j = AudioBuffers[i].dataLength / 2;
+                factor = 0.01f;
+                inc = 0.99f / j;
+                while(j--)
+                {
+                    AudioBuffers[i].data[j] *= factor;
+                    factor += inc;
+                }
+            }
             Audio.audioThread = CreateThread(NULL, 0, AudioThread, NULL, 0, &dwThreadId);
+        }
         else
         {
             printf("error: failed opening wave output\n");
-            return 0xFF;
         }
     }
+
+    UpdateWindow(hWnd);
 
     while(GetMessage(&msg, NULL, 0, 0))
     {
