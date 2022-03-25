@@ -19,7 +19,7 @@ When you don't have `gcc` to compile, download the project as zip, extract all f
 
 ## Controls
 ### Menu
-<kbd>WASD</kbd> or arrow keys to move
+<kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrow keys to move
 ### In-Game
 <kbd>A</kbd>, <kbd>LEFT</kbd> - Move left <br>
 <kbd>D</kbd>, <kbd>RIGHT</kbd> - Move right <br>
