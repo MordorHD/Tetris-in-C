@@ -3,6 +3,8 @@
 Just another Tetris version I made for fun.
 The drop sound effect of the tetronomino is me slamming my desk, I didn't find the real sound effect online, so I had to improvise.
 
+When the program is first started, it creates a `.save` file which will keep track of all highscores and typed names.
+
 Only on windows.
 
 ## Compiling
