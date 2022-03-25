@@ -82,6 +82,7 @@ void AudioStartMusic(void)
     Audio.musicPlaying = 1;
     Audio.paused = 0;
     Audio.musicIndex = sizeof(Audio.buffer);
+    Audio.index = 0;
 }
 
 void AudioStopMusic(void)
@@ -265,7 +266,7 @@ LRESULT CALLBACK MenuProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
     case WM_CREATE:
         SetTimer(hWnd, 0, 80, NULL);
-        fp = fopen(".save", "rb");
+        fp = fopen("Tetris.save", "rb");
         if(fp)
         {
             fread(highscores, 4, 30, fp);
@@ -276,7 +277,7 @@ LRESULT CALLBACK MenuProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             memset(highscoreNames, '.', sizeof(highscoreNames));
         return 0;
     case WM_DESTROY:
-        fp = fopen(".save", "wb");
+        fp = fopen("Tetris.save", "wb");
         fwrite(highscores, 4, 30, fp);
         fwrite(highscoreNames, 12, 30, fp);
         fclose(fp);
@@ -404,10 +405,10 @@ LRESULT CALLBACK MenuProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         else switch(wParam)
         {
-        case VK_LEFT: if(selectedLevel) selectedLevel--; else return 0; break;
-        case VK_RIGHT: if(selectedLevel != 9) selectedLevel++; else return 0; break;
-        case VK_UP: if(selectedLevel >= 5) selectedLevel -= 5; else return 0; break;
-        case VK_DOWN: if(selectedLevel < 5) selectedLevel += 5; else return 0; break;
+        case 'A': case VK_LEFT: if(selectedLevel) selectedLevel--; else return 0; break;
+        case 'D': case VK_RIGHT: if(selectedLevel != 9) selectedLevel++; else return 0; break;
+        case 'W': case VK_UP: if(selectedLevel >= 5) selectedLevel -= 5; else return 0; break;
+        case 'S': case VK_DOWN: if(selectedLevel < 5) selectedLevel += 5; else return 0; break;
         case VK_RETURN: SendMessage(MainWindow, WM_SETACTIVEWINDOW, 0, selectedLevel);
         default:
             return 0;
@@ -837,7 +838,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             return 0;
         if(paused)
         {
-            if(wParam == VK_RETURN || wParam == VK_ESCAPE)
+            if(wParam == VK_RETURN || wParam == VK_ESCAPE || wParam == 'P')
             {
                 if(!keys[wParam])
                 {
@@ -861,6 +862,7 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case 'J':
             ccw = 1;
         case 'I':
+        case 'W':
         case VK_UP:
             if(keys[wParam])
                 return 0;
@@ -874,8 +876,9 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
         case 'A': case VK_LEFT: if(!CheckCollision(piece, curPiece->gs, pieceX - 1, pieceY)) return 0; pieceX--; break;
         case 'D': case VK_RIGHT: if(!CheckCollision(piece, curPiece->gs, pieceX + 1, pieceY)) return 0; pieceX++; break;
         case 'M': Audio.musicPlaying = !Audio.musicPlaying; return 0;
-        case 'N': Audio.locked = !Audio.locked; return 0;
+        case 'N': AudioStartMusic(); Audio.locked = !Audio.locked; return 0;
         case 'C': showColor = !showColor; break;
+        case 'P':
         case VK_ESCAPE:
         case VK_RETURN:
             if(!keys[wParam])
