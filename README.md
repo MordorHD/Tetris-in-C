@@ -14,7 +14,8 @@ When this is not the case, you have to use `set path=%path%;<file path of gcc.ex
 
 ## Running the program
 So, when you you used above steps to compile, the program should already run. <br>
-When you don't have `gcc` to compile, just run `Tetris.exe`. <br>
+When you don't have `gcc` to compile, download the project as zip, extract all files into one folder and run `Tetris.exe`
+
 
 ## Controls
 ### Menu
@@ -24,6 +25,7 @@ When you don't have `gcc` to compile, just run `Tetris.exe`. <br>
 <kbd>D</kbd>, <kbd>RIGHT</kbd> - Move right <br>
 <kbd>W</kbd>, <kbd>UP</kbd>, <kbd>I</kbd> - Rotate left <br>
 <kbd>J</kbd> - Rotate right <br>
+<kbd>S</kbd> - Fast fall
 <kbd>M</kbd> - Mute music <br>
 <kbd>N</kbd> - Mute all music and sounds <br>
 <kbd>C</kbd> - Disable colors <br>
