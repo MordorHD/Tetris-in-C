@@ -27,7 +27,7 @@ When you don't have `gcc` to compile, download the project as zip, extract all f
 <kbd>D</kbd>, <kbd>RIGHT</kbd> - Move right <br>
 <kbd>W</kbd>, <kbd>UP</kbd>, <kbd>I</kbd> - Rotate clockwise <br>
 <kbd>J</kbd> - Rotate counter-clockwise <br>
-<kbd>S</kbd> - Fast fall
+<kbd>S</kbd> - Fast fall <br>
 <kbd>M</kbd> - Mute music <br>
 <kbd>N</kbd> - Mute all music and sounds <br>
 <kbd>C</kbd> - Disable colors <br>
