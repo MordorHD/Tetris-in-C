@@ -25,8 +25,8 @@ When you don't have `gcc` to compile, download the project as zip, extract all f
 ### In-Game
 <kbd>A</kbd>, <kbd>LEFT</kbd> - Move left <br>
 <kbd>D</kbd>, <kbd>RIGHT</kbd> - Move right <br>
-<kbd>W</kbd>, <kbd>UP</kbd>, <kbd>I</kbd> - Rotate left <br>
-<kbd>J</kbd> - Rotate right <br>
+<kbd>W</kbd>, <kbd>UP</kbd>, <kbd>I</kbd> - Rotate clockwise <br>
+<kbd>J</kbd> - Rotate counter-clockwise <br>
 <kbd>S</kbd> - Fast fall
 <kbd>M</kbd> - Mute music <br>
 <kbd>N</kbd> - Mute all music and sounds <br>
