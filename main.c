@@ -573,23 +573,26 @@ LRESULT CALLBACK GameProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 if(lines % GRID_HEIGHT > (lines + linesCleared) % GRID_HEIGHT)
                 {
                     color >>= 8;
-                    x = rand();
                     if(!color)
-                        color = (x << 16) | (x << 8);
+                    {
+                        x = rand() & 0xFF;
+                        color = (x << 16) | x;
+                    }
                 }
                 lines += linesCleared;
                 x = 0;
-                memset(Grid, 0, GRID_WIDTH * linesCleared);
-                while(linesCleared--)
+                i = linesCleared;
+                while(i--)
                 {
-                    gr = Grid + GRID_WIDTH * (lineIndexes[linesCleared] + x);
-                    for(y = lineIndexes[linesCleared] + x; y >= 1; y--)
+                    gr = Grid + GRID_WIDTH * (lineIndexes[i] + x);
+                    for(y = lineIndexes[i] + x; y >= 1; y--)
                     {
                         memcpy(gr, gr - GRID_WIDTH, GRID_WIDTH);
                         gr -= GRID_WIDTH;
                     }
                     x++;
                 }
+                memset(Grid, 0, GRID_WIDTH * linesCleared);
                 curPiece = nextPiece;
                 memcpy(piece, curPiece->grid, curPiece->gs * curPiece->gs);
                 nextPiece = Pieces + rand() % (sizeof(Pieces) / sizeof(*Pieces));
@@ -920,8 +923,6 @@ void RegisterClasses(void)
 
 int main(void)
 {
-    FreeConsole();
-
     HWND hWnd;
     MSG msg;
 
@@ -931,6 +932,7 @@ int main(void)
     float factor, inc;
     DWORD dwThreadId;
 
+    FreeConsole();
     srand(time(NULL));
     InitPieces();
     RegisterClasses();
