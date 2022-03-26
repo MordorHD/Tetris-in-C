@@ -17,10 +17,6 @@ static struct {
      bool paused, locked;
 } Audio;
 
-#define BUFFERLEN (sizeof(Audio.buffer)/sizeof(*Audio.buffer))
-#define PARTCNT (sizeof(Audio.parts)/sizeof(*Audio.parts))
-#define PARTSIZE (sizeof(Audio.buffer)/PARTCNT)
-
 #define EFFECT_ROTATE 1
 #define EFFECT_LINECLEAR 2
 #define EFFECT_TETRIS 3
