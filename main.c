@@ -992,7 +992,7 @@ int main(void)
                 AudioBuffers[0].data[AudioBuffers[0].dataLength / 2 - 1 - i] *= factor;
             }
             // give sound effects a fade effect (against sound artifacts that appear with sudden amplitude changes)
-            for(i = 1; i <= EFFECT_MAX; i++)
+            for(i = 1; i < EFFECT_MAX; i++)
             {
                 j = AudioBuffers[i].dataLength / 2;
                 factor = 0.01f;
