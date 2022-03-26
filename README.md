@@ -33,3 +33,8 @@ When you don't have `gcc` to compile, download the project as zip, extract all f
 <kbd>C</kbd> - Disable colors <br>
 <kbd>RETURN</kbd>, <kbd>ESCAPE</kbd>, <kbd>P</kbd> - Pause
 
+I intended four possible setups: 
+1. One hand on <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>
+2. One hand on the arrow keys
+3. One hand on <kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>, a second hand on <kbd>I</kbd><kbd>J</kbd>
+4. One hand on the arrow keys, a second hand on <kbd>I</kbd><kbd>J</kbd>
